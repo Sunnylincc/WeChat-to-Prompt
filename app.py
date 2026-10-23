@@ -10,12 +10,13 @@ from dotenv import load_dotenv
 from google import genai
 
 from src.prompting import SUPPORTED_STYLES, build_instruction
-from src.resolver import MAX_BYTES, UnsupportedLinkError, resolve_public_video
+from src.resolver import MAX_BYTES, UnsupportedLinkError, resolve_public_video, is_wechat_share_link
+from src.wechat import resolve_and_download
 
 load_dotenv()
 
 
-def generate_prompt(link: str, upload: str | None, style: str) -> str:
+def generate_prompt(link: str, upload: str | None, style: str, allow_parser: bool) -> str:
     key = os.getenv("GEMINI_API_KEY")
     if not key:
         return "Set GEMINI_API_KEY in your local .env file."
@@ -25,7 +26,7 @@ def generate_prompt(link: str, upload: str | None, style: str) -> str:
     uploaded_resource = None
     try:
         with tempfile.TemporaryDirectory(prefix="wechat_to_prompt_") as tmp:
-            video = Path(upload) if upload else resolve_public_video(link.strip(), tmp)
+            video = (Path(upload) if upload else (resolve_and_download(link.strip(), tmp, consent=allow_parser) if is_wechat_share_link(link.strip()) else resolve_public_video(link.strip(), tmp)))
             if not video.is_file() or video.stat().st_size > MAX_BYTES:
                 return "Video is missing or exceeds 200 MB."
             client = genai.Client(api_key=key)
@@ -60,12 +61,13 @@ def generate_prompt(link: str, upload: str | None, style: str) -> str:
 
 with gr.Blocks(title="WeChat to Prompt") as app:
     gr.Markdown("# WeChat to Prompt\nTurn authorized videos into AI generation prompts locally.")
-    gr.Markdown("**WeChat Channels sharing URLs are not supported yet.** Use a permitted local video upload to test Gemini analysis.")
+    gr.Markdown("**Experimental:** WeChat links use an unaffiliated third-party parser, only when you opt in. This shares the URL with that service. Parsing may fail and has not yet been verified on a real link.")
     url = gr.Textbox(label="Public video URL", placeholder="https://...")
     video = gr.File(label="Or upload video", file_types=[".mp4", ".mov", ".webm", ".mkv"], type="filepath")
     style = gr.Radio(choices=list(SUPPORTED_STYLES), value="Sora", label="Prompt format")
+    allow_parser = gr.Checkbox(value=False, label="I own/have permission for this content and agree to send the WeChat link to a third-party parser")
     output = gr.Textbox(label="Generated prompt", lines=16, show_copy_button=True)
-    gr.Button("Generate Prompt", variant="primary").click(generate_prompt, inputs=[url, video, style], outputs=output)
+    gr.Button("Generate Prompt", variant="primary").click(generate_prompt, inputs=[url, video, style, allow_parser], outputs=output)
 
 if __name__ == "__main__":
     app.launch(server_name="127.0.0.1", share=False)
