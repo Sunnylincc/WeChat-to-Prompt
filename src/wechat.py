@@ -11,7 +11,7 @@ from urllib.parse import urlparse
 
 import requests
 
-PARSER = "https://sph.litao.workers.dev/api/fetch_video_profile"
+PARSER = os.getenv("WECHAT_RESOLVER_ENDPOINT", "").strip()
 MAX_BYTES = 200 * 1024 * 1024
 
 
@@ -29,8 +29,8 @@ def resolve_and_download(url: str, folder: str, consent: bool = False) -> Path:
     url = validate_share_url(url)
     if not consent:
         raise ValueError("Enable the third-party parser consent checkbox first.")
-    response = requests.post(PARSER, json={"url": url}, timeout=20)
-    response.raise_for_status()
+    if not PARSER:\n        raise ValueError("No authorized WeChat parser is configured. The previously free public parser now requires authentication. Upload a video you are authorized to analyze instead.")\n    parser_url = urlparse(PARSER)\n    if parser_url.scheme != "https" or not parser_url.hostname or parser_url.username or parser_url.password or parser_url.port:\n        raise ValueError("WECHAT_RESOLVER_ENDPOINT must be a valid HTTPS endpoint.")\n    token = os.getenv("WECHAT_RESOLVER_TOKEN", "").strip()\n    headers = {"Authorization": f"Bearer {token}"} if token else {}\n    response = requests.post(PARSER, json={"url": url}, headers=headers, timeout=20)
+    if response.status_code == 401:\n        raise ValueError("WeChat resolver requires authorization. Set an authorized resolver token or upload a video.")\n    response.raise_for_status()
     payload = response.json()
     if not isinstance(payload, dict):
         raise ValueError("Unexpected parser response")
