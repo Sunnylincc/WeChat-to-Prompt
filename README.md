@@ -40,3 +40,6 @@ No real API keys, tokens, cookies, session details, sample private video files, 
 
 ## WeChat link privacy
 The optional checkbox is off by default. When enabled, the URL is shared with `sph.litao.workers.dev` and the returned media is downloaded locally before being submitted to Gemini. This third-party service is not affiliated with Tencent or this project. Its API may change without notice. No WeChat login credentials are needed or accepted.
+
+## October 2026 resolver status
+Independent reports indicate the formerly anonymous `sph.litao.workers.dev` parser now requires authentication and cannot be assumed operational (HTTP 401). We do not use it as an automatic default. For WeChat links, configure an HTTPS resolver you have authorization to use using `WECHAT_RESOLVER_ENDPOINT` and optionally `WECHAT_RESOLVER_TOKEN` in your local `.env`. The UI opt-in control is still required. If unavailable, upload a video you own or have permission to analyze. **The supplied sample link `https://weixin.qq.com/sph/ABAYvs0amf` remains unverified as a playable video.** The separate ClipToPrompt product is unchanged until an authorized parser is validated.
