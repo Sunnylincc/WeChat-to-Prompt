@@ -43,3 +43,19 @@ The optional checkbox is off by default. When enabled, the URL is shared with `s
 
 ## October 2026 resolver status
 Independent reports indicate the formerly anonymous `sph.litao.workers.dev` parser now requires authentication and cannot be assumed operational (HTTP 401). We do not use it as an automatic default. For WeChat links, configure an HTTPS resolver you have authorization to use using `WECHAT_RESOLVER_ENDPOINT` and optionally `WECHAT_RESOLVER_TOKEN` in your local `.env`. The UI opt-in control is still required. If unavailable, upload a video you own or have permission to analyze. **The supplied sample link `https://weixin.qq.com/sph/ABAYvs0amf` remains unverified as a playable video.** The separate ClipToPrompt product is unchanged until an authorized parser is validated.
+
+## Self-developed, no-resolver capture experiment
+
+We are no longer pursuing Xiaobao or publicly exposed third-party WeChat parsing APIs. The project now includes our own first-party **browser-assisted network observation** in `tools/capture_wechat.py` and a HAR metadata extractor in `src/media_capture.py`.
+
+```bash
+pip install playwright
+python -m playwright install chromium
+python tools/capture_wechat.py https://weixin.qq.com/sph/ABAYvs0amf
+```
+
+This opens an interactive Chromium browser. If the video plays through a normal authorized browser session, it detects media network responses without exporting browser cookies or auth headers. It intentionally prints the media host/path only because temporary query tokens can be sensitive.
+
+**Known limitation:** WeChat's share page may only play inside WeChat or an authenticated environment. When that happens the browser will not see video packets; that is not a bug in Gemini, and the script will report no observed media. It does not impersonate WeChat, copy login sessions, or bypass access controls. The provided sample URL has **not** been verified as playable in the execution environment. This is a diagnostic foundation, not a claim of automatic URL-to-prompt support.
+
+Privacy: HAR files can contain cookies and tokens; do not upload/commit HAR files. The HAR extractor reads locally. This code does not require or retrieve the user's WeChat account credentials.
